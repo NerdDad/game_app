@@ -19,21 +19,25 @@ enum GAME_STATE {
 }
 
 class BattleshipModel {
-  @observable grid: Array<Array<number>>
+  WIDTH = 10
+  HEIGHT = 10
+  @observable grid: Array<number>
   gameState: GAME_STATE
+  unplacedShips: Array<number>
+  shipStart: number
 
   constructor() {
     let grid = new Array()
-    for (let i = 0; i < 10; i++) {
-      let cells = new Array()
-      for (let j = 0; j < 10; j++) {
-        cells.push(CELL_STATE.EMPTY)
+    for (let i = 0; i < this.WIDTH; i++) {
+      for (let j = 0; j < this.HEIGHT; j++) {
+        grid.push(CELL_STATE.EMPTY)
       }
-      grid.push(cells)
     }
     this.grid = grid
     this.createGame()
   }
+
+  pos(x: number, y: number) {return x * this.WIDTH + y}
 
   createGame() {
     this.gameState = GAME_STATE.PLAY
@@ -56,21 +60,21 @@ class BattleshipModel {
     for (let i = 0; i < size; i++) {
       let cx = sx + (dx * i)
       let cy = sy + (dy * i)
-      if (cx < 0 || cx >= this.grid.length) { return false }
-      if (cy < 0 || cy >= this.grid.length[0]) { return false }
-      if (this.grid[cx][cy] !== CELL_STATE.EMPTY) { return false }
+      if (cx < 0 || cx >= this.HEIGHT) { return false }
+      if (cy < 0 || cy >= this.WIDTH) { return false }
+      if (this.getCell(cx, cy) !== CELL_STATE.EMPTY) { return false }
     }
     for (let i = 0; i < size; i++) {
       let cx = sx + (dx * i)
       let cy = sy + (dy * i)
-      this.grid[cx][cy] = CELL_STATE.ENEMY_SHIP
+      this.grid[this.pos(cx, cy)] = CELL_STATE.ENEMY_SHIP
     }
     return true
   }
 
   selectCell(x: number, y: number) {
-    if (x < 0 || x >= this.grid.length) { return }
-    if (y < 0 || y >= this.grid.length[0]) { return }
+    if (x < 0 || x >= this.HEIGHT) { return }
+    if (y < 0 || y >= this.WIDTH) { return }
     switch (this.gameState) {
       default:
         this.selectCellPlay(x, y)
@@ -78,12 +82,14 @@ class BattleshipModel {
   }
 
   selectCellPlay(x: number, y: number) {
-    if (this.grid[x][y] === CELL_STATE.ENEMY_SHIP) {
-      this.grid[x][y] = CELL_STATE.HIT
-    } else if (this.grid[x][y] === CELL_STATE.EMPTY) {
-      this.grid[x][y] = CELL_STATE.MISS
+    if (this.getCell(x, y) === CELL_STATE.ENEMY_SHIP) {
+      this.grid[this.pos(x, y)] = CELL_STATE.HIT
+    } else if (this.getCell(x, y) === CELL_STATE.EMPTY) {
+      this.grid[this.pos(x, y)] = CELL_STATE.MISS
     }
-
+  }
+  getCell(x: number, y: number) {
+    return this.grid[this.pos(x, y)]
   }
 }
 
@@ -95,7 +101,7 @@ class BattleshipBoard extends React.Component<null, { model: BattleshipModel }> 
   }
 
   cellStyle(x: number, y: number) {
-    switch (this.state.model.grid[x][y]) {
+    switch (this.state.model.getCell(x, y)) {
       case CELL_STATE.EMPTY:
       case CELL_STATE.ENEMY_SHIP:
         return styles.empty
